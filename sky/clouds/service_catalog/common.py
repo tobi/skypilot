@@ -387,12 +387,23 @@ def get_instance_type_for_accelerator_impl(
     Returns a list of instance types satisfying the required count of
     accelerators with sorted prices and a list of candidates with fuzzy search.
     """
+
+    def _filter_region_zone(df_: pd.DataFrame, region: Optional[str],
+                            zone: Optional[str]) -> pd.DataFrame:
+        if region is not None:
+            df_ = df_[df_['Region'] == region]
+        if zone is not None:
+            df_ = df_[df_['AvailabilityZone'] == zone]
+        return df_
+
     result = df[(df['AcceleratorName'].str.fullmatch(acc_name, case=False)) &
                 (df['AcceleratorCount'] == acc_count)]
+    result = _filter_region_zone(result, region, zone)
     if len(result) == 0:
         fuzzy_result = df[
             (df['AcceleratorName'].str.contains(acc_name, case=False)) &
             (df['AcceleratorCount'] >= acc_count)]
+        fuzzy_result = _filter_region_zone(fuzzy_result, region, zone)
         fuzzy_result = fuzzy_result.sort_values('Price', ascending=True)
         fuzzy_result = fuzzy_result[['AcceleratorName',
                                      'AcceleratorCount']].drop_duplicates()

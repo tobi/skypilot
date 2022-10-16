@@ -955,11 +955,7 @@ def _fill_in_launchable_resources(
                     f'sky check {colorama.Style.RESET_ALL}, or change the '
                     'cloud requirement')
         elif resources.is_launchable():
-            if isinstance(resources.cloud, clouds.GCP):
-                # Check if the host VM satisfies the max vCPU and memory limits.
-                clouds.GCP.check_accelerator_attachable_to_host(
-                    resources.instance_type, resources.accelerators,
-                    resources.zone)
+            resources.validate_launchable()
             # If the user has specified a GCP zone and the zone does not support
             # the host-accelerator combination, then an error will be raised by
             # the above check_accelerator_attachable_to_host() call.
