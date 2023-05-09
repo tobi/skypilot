@@ -685,7 +685,7 @@ class Resources:
                 acc_from_instance_type = (
                     self.cloud.get_accelerators_from_instance_type(
                         self._instance_type))
-                if not Resources(accelerators=acc_requested).is_same_resources(
+                if not Resources(accelerators=acc_requested).less_demanding_than(
                         Resources(accelerators=acc_from_instance_type)):
                     with ux_utils.print_exception_no_traceback():
                         raise ValueError(
