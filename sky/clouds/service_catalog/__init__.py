@@ -209,8 +209,6 @@ def get_instance_type_for_accelerator(
     region: Optional[str] = None,
     zone: Optional[str] = None,
     clouds: CloudFilter = None,
-    region: Optional[str] = None,
-    zone: Optional[str] = None,
 ) -> Tuple[Optional[List[str]], List[str]]:
     """
     Returns a list of instance types satisfying the required count of

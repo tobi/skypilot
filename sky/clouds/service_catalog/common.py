@@ -332,6 +332,7 @@ def _filter_with_mem(df: pd.DataFrame,
     else:
         return df[df['MemoryGiB'] == memory]
 
+
 def _filter_region_zone(df: pd.DataFrame, region: Optional[str],
                         zone: Optional[str]) -> pd.DataFrame:
     if region is not None:
@@ -339,6 +340,7 @@ def _filter_region_zone(df: pd.DataFrame, region: Optional[str],
     if zone is not None:
         df = df[df['AvailabilityZone'] == zone]
     return df
+
 
 def get_instance_type_for_cpus_mem_impl(
         df: pd.DataFrame, cpus: Optional[str],
