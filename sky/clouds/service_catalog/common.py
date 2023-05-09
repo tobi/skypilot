@@ -332,6 +332,13 @@ def _filter_with_mem(df: pd.DataFrame,
     else:
         return df[df['MemoryGiB'] == memory]
 
+def _filter_region_zone(df: pd.DataFrame, region: Optional[str],
+                        zone: Optional[str]) -> pd.DataFrame:
+    if region is not None:
+        df = df[df['Region'] == region]
+    if zone is not None:
+        df = df[df['AvailabilityZone'] == zone]
+    return df
 
 def get_instance_type_for_cpus_mem_impl(
         df: pd.DataFrame, cpus: Optional[str],
@@ -387,15 +394,6 @@ def get_instance_type_for_accelerator_impl(
     Returns a list of instance types satisfying the required count of
     accelerators with sorted prices and a list of candidates with fuzzy search.
     """
-
-    def _filter_region_zone(df_: pd.DataFrame, region: Optional[str],
-                            zone: Optional[str]) -> pd.DataFrame:
-        if region is not None:
-            df_ = df_[df_['Region'] == region]
-        if zone is not None:
-            df_ = df_[df_['AvailabilityZone'] == zone]
-        return df_
-
     result = df[(df['AcceleratorName'].str.fullmatch(acc_name, case=False)) &
                 (df['AcceleratorCount'] == acc_count)]
     result = _filter_region_zone(result, region, zone)
@@ -416,11 +414,6 @@ def get_instance_type_for_accelerator_impl(
 
     result = _filter_with_cpus(result, cpus)
     result = _filter_with_mem(result, memory)
-    if region is not None:
-        result = result[result['Region'] == region]
-    if zone is not None:
-        # NOTE: For Azure regions, zone must be None.
-        result = result[result['AvailabilityZone'] == zone]
     if len(result) == 0:
         return ([], [])
 
