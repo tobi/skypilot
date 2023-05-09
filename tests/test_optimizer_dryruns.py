@@ -324,13 +324,6 @@ def test_instance_type_mistmatches_accelerators(monkeypatch):
 
     with pytest.raises(ValueError) as e:
         _test_resources_launch(monkeypatch,
-                               sky.AWS(),
-                               instance_type='p3.16xlarge',
-                               accelerators={'V100': 4})
-        assert 'In feasible resource demands' in str(e.value), str(e.value)
-
-    with pytest.raises(ValueError) as e:
-        _test_resources_launch(monkeypatch,
                                sky.GCP(),
                                instance_type='n2-standard-8',
                                accelerators={'V100': 1})
@@ -351,6 +344,11 @@ def test_instance_type_matches_accelerators(monkeypatch):
                            sky.GCP(),
                            instance_type='n1-standard-8',
                            accelerators='tpu-v3-8')
+
+    _test_resources_launch(monkeypatch,
+                           sky.AWS(),
+                           instance_type='p3.16xlarge',
+                           accelerators={'V100': 4})
 
 
 def test_invalid_instance_type(monkeypatch):
