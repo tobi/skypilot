@@ -475,6 +475,8 @@ class Cloud:
             zone: Optional[str] = None) -> None:
         """Errors out if the accelerator is not supported by the instance type.
 
+        This function is overridden by GCP for host-accelerator logic.
+
         Raises:
             ResourcesMismatchError: If the accelerator is not supported.
         """
