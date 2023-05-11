@@ -315,19 +315,26 @@ def test_instance_type_mistmatches_accelerators(monkeypatch):
         ('m4.2xlarge', 'V100'),
     ]
     for instance, acc in bad_instance_and_accs:
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(exceptions.ResourcesMismatchError) as e:
             _test_resources_launch(monkeypatch,
                                    sky.AWS(),
                                    instance_type=instance,
                                    accelerators=acc)
         assert 'Infeasible resource demands found' in str(e.value)
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(exceptions.ResourcesMismatchError) as e:
         _test_resources_launch(monkeypatch,
                                sky.GCP(),
                                instance_type='n2-standard-8',
                                accelerators={'V100': 1})
         assert 'can only be attached to N1 VMs,' in str(e.value), str(e.value)
+
+    with pytest.raises(exceptions.ResourcesMismatchError) as e:
+        _test_resources_launch(monkeypatch,
+                               sky.AWS(),
+                               instance_type='p3.16xlarge',
+                               accelerators={'V100': 1})
+        assert 'Infeasible resource demands found' in str(e.value)
 
 
 def test_instance_type_matches_accelerators(monkeypatch):
@@ -348,7 +355,7 @@ def test_instance_type_matches_accelerators(monkeypatch):
     _test_resources_launch(monkeypatch,
                            sky.AWS(),
                            instance_type='p3.16xlarge',
-                           accelerators={'V100': 4})
+                           accelerators={'V100': 8})
 
 
 def test_invalid_instance_type(monkeypatch):

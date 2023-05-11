@@ -391,33 +391,53 @@ def check_accelerator_attachable_to_host(instance_type: str,
             attached to the host.
     """
     if accelerators is None:
+        if instance_type.startswith('a2-'):
+            # NOTE: While it is allowed to use A2 machines as CPU-only nodes,
+            # we exclude this case as it is uncommon and undesirable.
+            with ux_utils.print_exception_no_traceback():
+                raise exceptions.ResourcesMismatchError(
+                    'A2 instance types should be used with A100 GPUs. '
+                    'Either use other instance types or specify the '
+                    'accelerators as A100.')
         return
 
     acc = list(accelerators.items())
     assert len(acc) == 1, acc
     acc_name, acc_count = acc[0]
 
-    if acc_name in _A100_INSTANCE_TYPE_DICTS:
-        if not instance_type.startswith('a2-'):
-            with ux_utils.print_exception_no_traceback():
-                raise exceptions.ResourcesMismatchError(
-                    f'A100 accelerator can only be attached to A2 VMs, '
-                    f'but {instance_type} is not an A2 VM.')
-    else:
-        if not instance_type.startswith('n1-'):
-            with ux_utils.print_exception_no_traceback():
-                raise exceptions.ResourcesMismatchError(
-                    f'Accelerator {acc_name} can only be attached to N1 VMs, '
-                    f'but {instance_type} is not an N1 VM.')
+    # Check if the accelerator is supported by GCP.
+    if not list_accelerators(gpus_only=False, name_filter=acc_name):
+        with ux_utils.print_exception_no_traceback():
+            raise exceptions.ResourcesMismatchError(
+                f'{acc_name} is not available in GCP. '
+                'See \'sky show-gpus --cloud gcp\'')
 
     if acc_name.startswith('tpu-'):
-        # TODO(woosuk): Check max vcpus and memory for each TPU type.
         if instance_type != 'TPU-VM' and not instance_type.startswith('n1-'):
             with ux_utils.print_exception_no_traceback():
                 raise exceptions.ResourcesMismatchError(
-                    f'TPU is not attachable to the host {instance_type}.')
-
+                    'TPU Nodes can be only used with N1 machines. '
+                    'Please refer to: '
+                    'https://cloud.google.com/compute/docs/general-purpose-machines#n1_machines')  # pylint: disable=line-too-long
         return
+
+    # Treat A100 as a special case.
+    if acc_name in _A100_INSTANCE_TYPE_DICTS:
+        a100_instance_type = _A100_INSTANCE_TYPE_DICTS[acc_name][acc_count]
+        if instance_type != a100_instance_type:
+            with ux_utils.print_exception_no_traceback():
+                raise exceptions.ResourcesMismatchError(
+                    f'A100:{acc_count} cannot be attached to {instance_type}. '
+                    f'Use {a100_instance_type} instead. Please refer to '
+                    'https://cloud.google.com/compute/docs/gpus#a100-gpus')
+    elif not instance_type.startswith('n1-'):
+        # Other GPUs must be attached to N1 machines.
+        # Refer to: https://cloud.google.com/compute/docs/machine-types#gpus
+        with ux_utils.print_exception_no_traceback():
+            raise exceptions.ResourcesMismatchError(
+                f'{acc_name} GPUs cannot be attached to {instance_type}. '
+                'Use N1 instance types instead. Please refer to: '
+                'https://cloud.google.com/compute/docs/machine-types#gpus')
 
     if acc_name in _A100_INSTANCE_TYPE_DICTS:
         valid_counts = list(_A100_INSTANCE_TYPE_DICTS[acc_name].keys())
@@ -428,16 +448,6 @@ def check_accelerator_attachable_to_host(instance_type: str,
             raise exceptions.ResourcesMismatchError(
                 f'{acc_name}:{acc_count} is not launchable on GCP. '
                 f'The valid {acc_name} counts are {valid_counts}.')
-
-    if acc_name in _A100_INSTANCE_TYPE_DICTS:
-        a100_instance_type = _A100_INSTANCE_TYPE_DICTS[acc_name][acc_count]
-        if instance_type != a100_instance_type:
-            with ux_utils.print_exception_no_traceback():
-                raise exceptions.ResourcesMismatchError(
-                    f'A100:{acc_count} cannot be attached to {instance_type}. '
-                    f'Use {a100_instance_type} instead. Please refer to '
-                    'https://cloud.google.com/compute/docs/gpus#a100-gpus')
-        return
 
     # Check maximum vCPUs and memory.
     max_cpus, max_memory = _NUM_ACC_TO_MAX_CPU_AND_MEMORY[acc_name][acc_count]
