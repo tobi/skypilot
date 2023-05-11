@@ -273,7 +273,7 @@ class Optimizer:
                     error_msg = (
                         'No launchable resource found for task '
                         f'{node}.{location_hint}\nThis means the '
-                        'catalog does not contain any instance types that '
+                        'catalog does not contain any resources that '
                         'satisfy this request.\n'
                         'To fix: relax or change the resource requirements.\n'
                         'Hint: \'sky show-gpus --all\' '
@@ -955,18 +955,23 @@ def _fill_in_launchable_resources(
                     f'sky check {colorama.Style.RESET_ALL}, or change the '
                     'cloud requirement')
         elif resources.is_launchable():
-            resources.validate_launchable()
-            # If the user has specified a GCP zone and the zone does not support
-            # the host-accelerator combination, then an error will be raised by
-            # the above check_accelerator_attachable_to_host() call.
+            # If the user has specified a invalid instance_type-accelerator
+            # combination, then is_valid will be False.
+            # - GCP: both instance_type and accelerator are specified, but the
+            #   instance_type cannot host the accelerator.
+            # - Others: both instance_type and accelerator are specified, but
+            #   the instance_type does not support the accelerator or count.
+            resources.check_accelerators_for_launchable()
+            launchable_list = _make_launchables_for_valid_region_zones(
+                resources)
+
             # If the user has not specified any zone, a launchable will be made
             # for every zone even if some of the zones do not support the
             # host-accelerator combination. Then the provisioner may try to
             # launch the instance, and fail over to other zones. We find this
             # behavior acceptable because this will happen only when the user
             # requested GCP 4:P100 or 8:K80 with a very large host VM.
-            launchable[resources] = _make_launchables_for_valid_region_zones(
-                resources)
+            launchable[resources] = launchable_list
         else:
             clouds_list = ([resources.cloud]
                            if resources.cloud is not None else enabled_clouds)

@@ -385,6 +385,9 @@ def check_accelerator_attachable_to_host(instance_type: str,
 
     This function checks the max CPU count and memory of the host that
     the accelerators can be attached to.
+
+    Raises:
+        exceptions.ResourcesMismatchError: If the accelerators cannot be attached to the host.
     """
     if accelerators is None:
         return
@@ -393,17 +396,24 @@ def check_accelerator_attachable_to_host(instance_type: str,
     assert len(acc) == 1, acc
     acc_name, acc_count = acc[0]
 
-    if not instance_type.startswith('n1-'):
-        with ux_utils.print_exception_no_traceback():
-            raise ValueError(
-                f'Accelerator {acc_name} can only be attached to N1 VMs, '
-                f'but {instance_type} is not an N1 VM.')
+    if acc_name in _A100_INSTANCE_TYPE_DICTS:
+        if not instance_type.startswith('a2-'):
+            with ux_utils.print_exception_no_traceback():
+                raise exceptions.ResourcesMismatchError(
+                    f'A100 accelerator can only be attached to A2 VMs, '
+                    f'but {instance_type} is not an A2 VM.')
+    else:
+        if not instance_type.startswith('n1-'):
+            with ux_utils.print_exception_no_traceback():
+                raise exceptions.ResourcesMismatchError(
+                    f'Accelerator {acc_name} can only be attached to N1 VMs, '
+                    f'but {instance_type} is not an N1 VM.')
 
     if acc_name.startswith('tpu-'):
         # TODO(woosuk): Check max vcpus and memory for each TPU type.
         if instance_type != 'TPU-VM' and not instance_type.startswith('n1-'):
             with ux_utils.print_exception_no_traceback():
-                raise ValueError(
+                raise exceptions.ResourcesMismatchError(
                     f'TPU is not attachable to the host {instance_type}.')
 
         return

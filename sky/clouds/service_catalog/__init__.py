@@ -1,6 +1,5 @@
 """Service catalog."""
 import collections
-from curses import erasechar
 import importlib
 import typing
 from typing import Dict, List, Optional, Set, Tuple, Union

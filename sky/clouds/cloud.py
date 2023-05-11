@@ -467,5 +467,45 @@ class Cloud:
         """
         raise NotImplementedError
 
+    @classmethod
+    def check_instance_type_accelerators_combination(
+            cls,
+            instance_type: str,
+            accelerators: Dict[str, int],
+            zone: Optional[str] = None) -> None:
+        """Errors out if the accelerator is not supported by the instance type.
+
+        Raises:
+            exceptions.ResourcesMismatchError: If the accelerator is not supported.
+        """
+        del zone  # Unused.
+
+        def _equal_accelerators(acc_requested, acc_from_instance_type):
+            if acc_requested is None:
+                return acc_from_instance_type is None
+            if acc_from_instance_type is None:
+                return False
+
+            for acc in acc_requested:
+                if acc not in acc_from_instance_type:
+                    return False
+                if acc_requested[acc] != acc_from_instance_type[acc]:
+                    return False
+            return True
+
+        acc_from_instance_type = (
+            cls.get_accelerators_from_instance_type(instance_type))
+        if not _equal_accelerators(accelerators, acc_from_instance_type):
+            with ux_utils.print_exception_no_traceback():
+                raise exceptions.ResourcesMismatchError(
+                    'Infeasible resource demands found:'
+                    '\n  Instance type requested: '
+                    f'{instance_type}\n'
+                    f'  Accelerators for {instance_type}: '
+                    f'{acc_from_instance_type}\n'
+                    f'  Accelerators requested: {accelerators}\n'
+                    f'To fix: either only specify instance_type, or '
+                    'change the accelerators field to be consistent.')
+
     def __repr__(self):
         return self._REPR

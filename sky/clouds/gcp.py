@@ -683,7 +683,7 @@ class GCP(clouds.Cloud):
         return project_id
 
     @staticmethod
-    def check_accelerator_attachable_to_host(
+    def check_instance_type_accelerators_combination(
             instance_type: str,
             accelerators: Optional[Dict[str, int]],
             zone: Optional[str] = None) -> None:

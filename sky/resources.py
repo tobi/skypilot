@@ -8,6 +8,7 @@ from sky import sky_logging
 from sky import spot
 from sky.backends import backend_utils
 from sky.utils import accelerator_registry
+from sky.utils import common_utils
 from sky.utils import schemas
 from sky.utils import tpu_utils
 from sky.utils import ux_utils
@@ -446,7 +447,8 @@ class Resources:
         may have restricted the regions to be considered (e.g., a
         ssh_proxy_command dict with region names as keys).
         """
-        assert self.is_launchable()
+        assert self.is_launchable(), self
+
         regions = self._cloud.regions_with_offering(self._instance_type,
                                                     self.accelerators,
                                                     self._use_spot,
@@ -473,6 +475,16 @@ class Resources:
             # TODO: filter out the zones not available in the vpc_name
             filtered_regions.append(region)
         return filtered_regions
+
+    def check_accelerators_for_launchable(self):
+        """Check the instance type-accelerator combination is valid.
+        
+        Raises:
+            exceptions.ResourcesMismatchError: if the combination is invalid.
+        """
+        assert self.is_launchable(), self
+        self.cloud.check_instance_type_accelerators_combination(
+            self.instance_type, self.accelerators, self.zone)
 
     def _try_validate_instance_type(self) -> None:
         if self.instance_type is None:
@@ -657,63 +669,6 @@ class Resources:
         if self.cloud is not None:
             self.cloud.check_disk_tier_enabled(self.instance_type,
                                                self.disk_tier)
-
-    def validate_launchable(self) -> None:
-        """Validate that the launchable resource based on catalog.
-
-        Raises:
-            ValueError: if the resource is not available based on catalog.
-        """
-        if not self.is_launchable():
-            raise ValueError(
-                'Resource is not launchable. Please specify either cloud and '
-                'instance_type.')
-
-        def _check_accelerators():
-            acc_requested = self.accelerators
-            if acc_requested is None:
-                return
-
-            if (isinstance(self.cloud, clouds.GCP) and
-                    self.instance_type is not None):
-                # Check if the host VM satisfies the max vCPU and memory limits.
-                clouds.GCP.check_accelerator_attachable_to_host(
-                    self.instance_type, self.accelerators, self.zone)
-
-            if not isinstance(self.cloud, clouds.GCP):
-                # GCP attaches accelerators to VMs, so no need for this check.
-                acc_from_instance_type = (
-                    self.cloud.get_accelerators_from_instance_type(
-                        self._instance_type))
-                if not Resources(
-                        accelerators=acc_requested).less_demanding_than(
-                            Resources(accelerators=acc_from_instance_type)):
-                    with ux_utils.print_exception_no_traceback():
-                        raise ValueError(
-                            'Infeasible resource demands found:'
-                            '\n  Instance type requested: '
-                            f'{self._instance_type}\n'
-                            f'  Accelerators for {self._instance_type}: '
-                            f'{acc_from_instance_type}\n'
-                            f'  Accelerators requested: {acc_requested}\n'
-                            f'To fix: either only specify instance_type, or '
-                            'change the accelerators field to be consistent.')
-
-            # Validate whether accelerator is available in specified region/zone
-            acc, acc_count = list(acc_requested.items())[0]
-            if self.region is not None or self.zone is not None:
-                if not self._cloud.accelerator_in_region_or_zone(
-                        acc, acc_count, self.region, self.zone):
-                    error_str = (f'Accelerator "{acc}" is not available in '
-                                 '"{}" region/zone.')
-                    if self.zone:
-                        error_str = error_str.format(self.zone)
-                    else:
-                        error_str = error_str.format(self.region)
-                    with ux_utils.print_exception_no_traceback():
-                        raise ValueError(error_str)
-
-        _check_accelerators()
 
     def get_cost(self, seconds: float) -> float:
         """Returns cost in USD for the runtime in seconds."""
