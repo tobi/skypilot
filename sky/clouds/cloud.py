@@ -476,7 +476,7 @@ class Cloud:
         """Errors out if the accelerator is not supported by the instance type.
 
         Raises:
-            exceptions.ResourcesMismatchError: If the accelerator is not supported.
+            ResourcesMismatchError: If the accelerator is not supported.
         """
         del zone  # Unused.
 

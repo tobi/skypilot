@@ -8,7 +8,6 @@ from sky import sky_logging
 from sky import spot
 from sky.backends import backend_utils
 from sky.utils import accelerator_registry
-from sky.utils import common_utils
 from sky.utils import schemas
 from sky.utils import tpu_utils
 from sky.utils import ux_utils
@@ -478,7 +477,7 @@ class Resources:
 
     def check_accelerators_for_launchable(self):
         """Check the instance type-accelerator combination is valid.
-        
+
         Raises:
             exceptions.ResourcesMismatchError: if the combination is invalid.
         """

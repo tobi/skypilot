@@ -387,7 +387,8 @@ def check_accelerator_attachable_to_host(instance_type: str,
     the accelerators can be attached to.
 
     Raises:
-        exceptions.ResourcesMismatchError: If the accelerators cannot be attached to the host.
+        exceptions.ResourcesMismatchError: If the accelerators cannot be
+            attached to the host.
     """
     if accelerators is None:
         return
